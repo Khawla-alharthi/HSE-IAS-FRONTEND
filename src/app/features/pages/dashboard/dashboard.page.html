@@ -1,0 +1,634 @@
+<!-- Enhanced Header Section -->
+<div class="main-header">
+  <div class="header-content">
+    <h1 class="page-title">HSE Dashboard</h1>
+    <p class="page-description">Track incident reports and safety analytics</p>
+  </div>
+  <div class="header-actions">
+    <!-- Search Bar -->
+    <div class="search-container">
+      <i class="fas fa-search search-icon"></i>
+      <input
+        type="text"
+        placeholder="Search incidents..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event); applyFilters()"
+        class="search-input"
+      />
+      <button 
+        *ngIf="searchQuery()"
+        (click)="searchQuery.set(''); applyFilters()"
+        class="search-clear"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <!-- Enhanced Dropdown Filter -->
+    <div class="filter-dropdown" 
+         [class.open]="showDropdownFilters()"
+         #filterDropdown>
+      <button class="filter-btn" (click)="toggleDropdownFilters()">
+        <i class="fas fa-filter"></i>
+        Filter
+        <i class="fas fa-chevron-down dropdown-arrow"></i>
+        <span *ngIf="getActiveFilterCount() > 0" class="filter-badge">
+          {{ getActiveFilterCount() }}
+        </span>
+      </button>
+      
+      <div class="filter-dropdown-menu">
+        <div class="dropdown-header">
+          <h4 class="dropdown-title">
+            <i class="fas fa-sliders-h"></i>
+            Filter Options
+          </h4>
+        </div>
+        
+        <div class="dropdown-content">
+          <!-- Date Range Filter -->
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-calendar"></i>
+              Date Range
+            </label>
+            <select
+              [ngModel]="activeFilters().dateRange"
+              (ngModelChange)="onDateRangeChangeHandler($event)"
+              class="filter-select"
+            >
+              <option *ngFor="let option of dateRangeOptions" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            
+            <div *ngIf="activeFilters().dateRange === 'custom'" class="custom-date-inputs">
+              <input
+                type="date"
+                [ngModel]="customDateFrom()"
+                (ngModelChange)="customDateFrom.set($event); onCustomDateFromChange()"
+                class="date-input"
+                placeholder="From"
+              />
+              <input
+                type="date"
+                [ngModel]="customDateTo()"
+                (ngModelChange)="customDateTo.set($event); onCustomDateToChange()"
+                class="date-input"
+                placeholder="To"
+              />
+            </div>
+          </div>
+
+          <!-- Level Filter -->
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-chart-bar"></i>
+              Analysis Level
+            </label>
+            <div class="level-checkboxes">
+              <label *ngFor="let level of levelOptions" class="checkbox-label">
+                <input
+                  type="checkbox"
+                  [checked]="(activeFilters().level || []).includes(level.value)"
+                  (change)="handleLevelToggle(level.value)"
+                  class="level-checkbox"
+                />
+                <div class="level-indicator" [style.background-color]="level.color"></div>
+                <span class="level-text">{{ level.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Sort Options -->
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-sort"></i>
+              Sort By
+            </label>
+            <select
+              [ngModel]="sortBy()"
+              (ngModelChange)="sortBy.set($event); onSortChange()"
+              class="filter-select"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="level-desc">Highest Level First</option>
+              <option value="level-asc">Lowest Level First</option>
+              <option value="views-desc">Most Viewed</option>
+              <option value="title-asc">Title A-Z</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="dropdown-footer">
+          <div class="filter-results">
+            Showing {{ filteredIncidents().length }} of {{ allIncidents().length }} incidents
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline-secondary" (click)="clearAllFilters()">
+              Clear All
+            </button>
+            <button class="btn btn-primary" (click)="closeDropdownAndApply()">
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy Filter Panel (for backward compatibility) -->
+  <div *ngIf="showFilters()" class="filter-panel">
+    <div class="filter-grid">
+      <!-- Date Range Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="fas fa-calendar me-1"></i>
+          Date Range
+        </label>
+        <select
+          [ngModel]="activeFilters().dateRange"
+          (ngModelChange)="onDateRangeChangeHandler($event)"
+          class="filter-select"
+        >
+          <option *ngFor="let option of dateRangeOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        
+        <div *ngIf="activeFilters().dateRange === 'custom'" class="custom-date-inputs">
+          <input
+            type="date"
+            [ngModel]="customDateFrom()"
+            (ngModelChange)="customDateFrom.set($event); onCustomDateFromChange()"
+            class="date-input"
+            placeholder="From"
+          />
+          <input
+            type="date"
+            [ngModel]="customDateTo()"
+            (ngModelChange)="customDateTo.set($event); onCustomDateToChange()"
+            class="date-input"
+            placeholder="To"
+          />
+        </div>
+      </div>
+
+      <!-- Level Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="fas fa-chart-bar me-1"></i>
+          Analysis Level
+        </label>
+        <div class="level-checkboxes">
+          <label *ngFor="let level of levelOptions" class="checkbox-label">
+            <input
+              type="checkbox"
+              [checked]="(activeFilters().level || []).includes(level.value)"
+              (change)="handleLevelToggle(level.value)"
+              class="level-checkbox"
+            />
+            <div class="level-indicator" [style.background-color]="level.color"></div>
+            <span class="level-text">{{ level.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sort Options -->
+      <div class="filter-group">
+        <label class="filter-label">Sort By</label>
+        <select
+          [ngModel]="sortBy()"
+          (ngModelChange)="sortBy.set($event); onSortChange()"
+          class="filter-select"
+        >
+          <option value="date-desc">Newest First</option>
+          <option value="date-asc">Oldest First</option>
+          <option value="level-desc">Highest Level First</option>
+          <option value="level-asc">Lowest Level First</option>
+          <option value="views-desc">Most Viewed</option>
+          <option value="title-asc">Title A-Z</option>
+        </select>
+      </div>
+
+      <!-- Filter Actions -->
+      <div class="filter-actions">
+        <button class="btn btn-outline-secondary" (click)="clearAllFilters()">
+          Clear All
+        </button>
+        <div class="filter-results">
+          Showing {{ filteredIncidents().length }} of {{ allIncidents().length }} incidents
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Loading State -->
+  <div class="loading-section" *ngIf="isLoading()">
+    <app-loading-spinner 
+      size="lg" 
+      color="primary"
+      message="Loading dashboard..."
+      [showMessage]="true">
+    </app-loading-spinner>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoading()"> 
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+      <div class="quick-actions-container">
+        <div class="quick-action-card" (click)="navigateToCreateIncident()">
+          <div class="action-icon bg-primary">
+            <i class="fas fa-plus"></i>
+          </div>
+          <div class="action-content">
+            <h4>Report Incident</h4>
+            <p>Create a new incident report</p>
+          </div>
+          <div class="action-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="quick-action-card" (click)="navigateToIncidentHistory()">
+          <div class="action-icon bg-info">
+            <i class="fas fa-history"></i>
+          </div>
+          <div class="action-content">
+            <h4>View History</h4>
+            <p>Browse all incident reports</p>
+          </div>
+          <div class="action-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="quick-action-card" (click)="navigateToProfile()">
+          <div class="action-icon bg-success">
+            <i class="fas fa-user-cog"></i>
+          </div>
+          <div class="action-content">
+            <h4>Profile Setting</h4>
+            <p>Manage your account</p>
+          </div>
+          <div class="action-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stats-card">
+        <div class="stats-icon bg-primary">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stats-content">
+          <h3>{{ stats().totalIncidents }}</h3>
+          <p>Total Reports</p>
+        </div>
+      </div>
+      
+      <div class="stats-card">
+        <div class="stats-icon bg-warning">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stats-content">
+          <h3>{{ stats().averageLevel }}</h3>
+          <p>Average Level</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts and Analytics Row -->
+    <div class="charts-row">
+      <!-- Incidents by Level Chart -->
+      <div class="chart-card">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="fas fa-chart-bar me-2"></i>
+            Filtered Incidents by Level
+          </h3>
+        </div>
+        <div class="chart-content">
+          <div class="level-chart" *ngIf="Object.keys(stats().incidentsByLevel).length > 0; else noLevelData">
+            <div *ngFor="let item of Object.entries(stats().incidentsByLevel)" class="level-item">
+              <div class="level-info">
+                <span class="level-label">{{ item[0] }}</span>
+                <span class="level-count">{{ item[1] }}</span>
+              </div>
+              <div class="level-bar">
+                <div class="level-progress" 
+                     [style.width.%]="stats().totalIncidents > 0 ? (item[1] / stats().totalIncidents) * 100 : 0"
+                     [style.background-color]="getIncidentLevelColor(item[0])">
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noLevelData>
+            <div class="empty-chart">
+              <i class="fas fa-chart-bar fa-2x mb-2"></i>
+              <p>No incident data matches your filters</p>
+              <button class="btn btn-primary btn-sm mt-2" (click)="clearAllFilters()">
+                <i class="fas fa-refresh me-1"></i>
+                Clear Filters
+              </button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Search Results Summary -->
+      <div class="chart-card" *ngIf="searchQuery() || getActiveFilterCount() > 0">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="fas fa-search me-2"></i>
+            Filter Results
+          </h3>
+        </div>
+        <div class="chart-content">
+          <div class="filter-summary">
+            <div class="summary-item" *ngIf="searchQuery()">
+              <h5>Search Query</h5>
+              <p class="search-highlight">"{{ searchQuery() }}"</p>
+            </div>
+            
+            <div class="summary-item" *ngIf="activeFilters().dateRange && activeFilters().dateRange !== 'all'">
+              <h5>Date Range</h5>
+              <p>{{ getDateRangeLabel() }}</p>
+            </div>
+            
+            <div class="summary-item" *ngIf="activeFilters().level && activeFilters().level.length > 0">
+              <h5>Analysis Levels</h5>
+              <div class="level-tags">
+                <span *ngFor="let level of activeFilters().level" 
+                      class="badge" 
+                      [class]="getIncidentLevelBadgeClass(level)">
+                  {{ level }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="summary-item">
+              <h5>Results</h5>
+              <p>{{ filteredIncidents().length }} of {{ allIncidents().length }} incidents</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity and Most Viewed -->
+    <div class="activity-row">
+      <!-- Recent Reports -->
+      <div class="activity-card">
+        <div class="section-header">
+          <div class="header-content">
+            <h3 class="section-title">
+              <i class="fas fa-clock me-2"></i>
+              Recent Reports
+              <span *ngIf="searchQuery() || getActiveFilterCount() > 0" class="filter-indicator">
+                (Filtered)
+              </span>
+            </h3>
+          </div>
+          <a routerLink="/incidents/history" class="view-all-link">
+            View All <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+        <div class="activity-content">
+          <div class="activity-list" *ngIf="stats().recentIncidents.length > 0; else noRecentActivity">
+            <div *ngFor="let incident of stats().recentIncidents; trackBy: trackIncidentById" 
+                 class="activity-item"
+                 (click)="viewIncident(incident)">
+              <div class="activity-icon" [style.background-color]="getIncidentLevelColor(incident.analysisLevel || '')">
+                <i class="fas fa-exclamation-circle"></i>
+              </div>
+              <div class="activity-content-text">
+                <h6 [innerHTML]="highlightSearchTerm(incident.title || 'Untitled Report')"></h6>
+                <p [innerHTML]="highlightSearchTerm((incident.description || '').length > 60 ? (incident.description || '').substring(0, 60) + '...' : (incident.description || ''))"></p>
+                <div class="activity-meta">
+                  <span class="activity-date">{{ formatDateShort(incident.recordedDate) }}</span>
+                  <span class="badge" [class]="getIncidentLevelBadgeClass(incident.analysisLevel || '')">
+                    {{ incident.analysisLevel || 'Unknown' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noRecentActivity>
+            <div class="empty-state-small">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <p *ngIf="getActiveFilterCount() > 0; else noIncidents">
+                No incidents match your current filters
+              </p>
+              <ng-template #noIncidents>
+                <p>No recent reports</p>
+              </ng-template>
+              <button *ngIf="getActiveFilterCount() > 0" class="btn btn-outline-secondary btn-sm mt-2" (click)="clearAllFilters()">
+                <i class="fas fa-refresh me-1"></i>
+                Clear Filters
+              </button>
+              <button *ngIf="getActiveFilterCount() === 0" class="btn btn-primary btn-sm mt-2" (click)="navigateToCreateIncident()">
+                <i class="fas fa-plus me-1"></i>
+                Create Report
+              </button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Most Accessed Reports -->
+      <div class="activity-card">
+        <div class="section-header">
+          <div class="header-content">
+            <h3 class="section-title">
+              <i class="fas fa-eye me-2"></i>
+              Most Access Reports
+              <span *ngIf="searchQuery() || getActiveFilterCount() > 0" class="filter-indicator">
+                (Filtered)
+              </span>
+            </h3>
+          </div>
+        </div>
+        <div class="activity-content">
+          <div class="viewed-list" *ngIf="stats().mostViewedIncidents.length > 0; else noViewedData">
+            <div *ngFor="let incident of stats().mostViewedIncidents; let i = index; trackBy: trackIncidentById" 
+                 class="viewed-item"
+                 (click)="viewIncident(incident)">
+              <div class="viewed-rank">
+                <span class="rank-number">{{ i + 1 }}</span>
+              </div>
+              <div class="viewed-content">
+                <h6 [innerHTML]="highlightSearchTerm(incident.title || 'Untitled Report')"></h6>
+                <p [innerHTML]="highlightSearchTerm((incident.description || '').length > 50 ? (incident.description || '').substring(0, 50) + '...' : (incident.description || ''))"></p>
+                <div class="viewed-meta">
+                  <span class="view-count">
+                    <i class="fas fa-eye me-1"></i>
+                    {{ getMockViewCount(incident) }} views
+                  </span>
+                  <span class="badge" [class]="getIncidentLevelBadgeClass(incident.analysisLevel || '')">
+                    {{ incident.analysisLevel || 'Unknown' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noViewedData>
+            <div class="empty-state-small">
+              <i class="fas fa-chart-line fa-2x mb-2"></i>
+              <p *ngIf="getActiveFilterCount() > 0; else noViewingData">
+                No incidents match your current filters
+              </p>
+              <ng-template #noViewingData>
+                <p>No viewing data available</p>
+              </ng-template>
+              <button *ngIf="getActiveFilterCount() > 0" class="btn btn-outline-secondary btn-sm mt-2" (click)="clearAllFilters()">
+                <i class="fas fa-refresh me-1"></i>
+                Clear Filters
+              </button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Your Safety Insights -->
+    <div class="insights-section" *ngIf="hasIncidents()">
+      <div class="insights-card">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="fas fa-lightbulb me-2"></i>
+            Your Safety Insights
+            <span *ngIf="searchQuery() || getActiveFilterCount() > 0" class="filter-indicator">
+              (Based on Filtered Data)
+            </span>
+          </h3>
+        </div>
+        <div class="insights-content">
+          <div class="insights-grid">
+            <div class="insight-item">
+              <div class="insight-icon">
+                <i class="fas fa-trophy"></i>
+              </div>
+              <div class="insight-text">
+                <h5>Highest Level</h5>
+                <p *ngIf="topIncidentLevel(); else noHighLevel">
+                  Most critical incident was {{ topIncidentLevel() }}
+                </p>
+                <ng-template #noHighLevel>
+                  <p>No incidents match your current filters</p>
+                </ng-template>
+              </div>
+            </div>
+            
+            <div class="insight-item">
+              <div class="insight-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="insight-text">
+                <h5>System Wide</h5>
+                <p>{{ allIncidents().length }} total incidents across all users</p>
+                <p *ngIf="getActiveFilterCount() > 0">
+                  ({{ filteredIncidents().length }} match your current filters)
+                </p>
+              </div>
+            </div>
+            
+            <div class="insight-item">
+              <div class="insight-icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="insight-text">
+                <h5>Analysis Rate</h5>
+                <p *ngIf="stats().completionRate >= 80">
+                  Excellent! Most reports have been analyzed
+                </p>
+                <p *ngIf="stats().completionRate < 80 && stats().completionRate >= 60">
+                  Good progress on incident analysis
+                </p>
+                <p *ngIf="stats().completionRate < 60">
+                  Consider reviewing pending incident analyses
+                </p>
+                <small class="text-muted">{{ stats().completionRate }}% completion rate</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State for New System or No Results -->
+    <div class="welcome-section" *ngIf="!hasIncidents()">
+      <div class="welcome-card" *ngIf="allIncidents().length === 0; else noFilterResults">
+        <div class="welcome-icon">
+          <i class="fas fa-hand-paper"></i>
+        </div>
+        <h3>Welcome to HSE Incident Reporting!</h3>
+        <p>Get started by creating the first incident report. Our system will help analyze and track safety incidents effectively.</p>
+        <div class="welcome-actions">
+          <button class="btn btn-primary btn-lg" (click)="navigateToCreateIncident()">
+            <i class="fas fa-plus me-2"></i>
+            Create First Report
+          </button>
+          <button class="btn btn-outline-secondary btn-lg ml-3" routerLink="/help">
+            <i class="fas fa-question-circle me-2"></i>
+            Learn More
+          </button>
+        </div>
+      </div>
+
+      <!-- No Filter Results State -->
+      <ng-template #noFilterResults>
+        <div class="welcome-card">
+          <div class="welcome-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <h3>No Incidents Found</h3>
+          <p>No incidents match your current search and filter criteria. Try adjusting your filters or search terms.</p>
+          
+          <!-- Current Filter Summary -->
+          <div class="current-filters" *ngIf="getActiveFilterCount() > 0">
+            <h5>Current Filters:</h5>
+            <div class="filter-summary-tags">
+              <span *ngIf="searchQuery()" class="filter-tag">
+                <i class="fas fa-search"></i>
+                "{{ searchQuery() }}"
+                <button (click)="searchQuery.set(''); applyFilters()" class="remove-filter">&times;</button>
+              </span>
+              
+              <span *ngIf="activeFilters().dateRange && activeFilters().dateRange !== 'all'" class="filter-tag">
+                <i class="fas fa-calendar"></i>
+                {{ getDateRangeLabel() }}
+                <button (click)="clearDateFilter()" class="remove-filter">&times;</button>
+              </span>
+              
+              <span *ngFor="let level of activeFilters().level || []" class="filter-tag">
+                <i class="fas fa-chart-bar"></i>
+                {{ level }}
+                <button (click)="handleLevelToggle(level)" class="remove-filter">&times;</button>
+              </span>
+            </div>
+          </div>
+          
+          <div class="welcome-actions">
+            <button class="btn btn-primary btn-lg" (click)="clearAllFilters()">
+              <i class="fas fa-refresh me-2"></i>
+              Clear All Filters
+            </button>
+            <button class="btn btn-outline-secondary btn-lg ml-3" (click)="navigateToCreateIncident()">
+              <i class="fas fa-plus me-2"></i>
+              Create New Report
+            </button>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

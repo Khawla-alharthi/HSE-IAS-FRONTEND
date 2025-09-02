@@ -1,0 +1,358 @@
+<div class="main-container">
+  <!-- Header Section -->
+  <div class="main-header">
+    <div class="header-content">
+      <h1 class="page-title">Profile</h1>
+      <p class="page-description">View your account information and manage preferences</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Loading State -->
+    <div class="loading-section" *ngIf="isLoading()">
+      <app-loading-spinner 
+        size="lg" 
+        color="primary"
+        message="Loading profile..."
+        [showMessage]="true">
+      </app-loading-spinner>
+    </div>
+
+    <!-- Profile Content -->
+    <div *ngIf="!isLoading()" class="profile-layout">
+      <!-- Sidebar -->
+      <div class="profile-sidebar">
+        <!-- Profile Card -->
+        <div class="profile-card">
+          <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="profile-info">
+            <h3>{{ getDisplayName() }}</h3>
+            <p>{{ getEmail() }}</p>
+            <div class="sso-badge">
+              <i class="fas fa-shield-alt me-2"></i>
+              <span>SSO Managed Account</span>
+            </div>
+            <div class="profile-completeness">
+              <div class="completeness-header">
+                <span>Profile Status</span>
+                <span class="percentage">{{ profileStats().profileCompleteness }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="profileStats().profileCompleteness"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="profile-nav">
+          <ul class="nav-list">
+            <li class="nav-item">
+              <button 
+                class="nav-link" 
+                [class.active]="activeTab() === 'profile'"
+                (click)="switchTab('profile')">
+                <i class="fas fa-user"></i>
+                Personal Information
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                class="nav-link" 
+                [class.active]="activeTab() === 'notifications'"
+                (click)="switchTab('notifications')">
+                <i class="fas fa-bell"></i>
+                Notifications
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                class="nav-link" 
+                [class.active]="activeTab() === 'preferences'"
+                (click)="switchTab('preferences')">
+                <i class="fas fa-cog"></i>
+                Account Settings
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+          <h4>Account Overview</h4>
+          <div class="stat-item">
+            <span class="stat-label">Account Status</span>
+            <span class="stat-value">{{ isActiveUser() ? 'Active' : 'Inactive' }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Role</span>
+            <span class="stat-value">{{ getRoleName() }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Personnel ID</span>
+            <span class="stat-value">{{ getPersonnelNumber() }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Last Login</span>
+            <span class="stat-value">{{ formatDateTime(profileStats().lastLogin) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="profile-content">
+        <!-- Success/Error Messages -->
+        <div class="alert alert-success" *ngIf="successMessage()">
+          <i class="fas fa-check-circle me-2"></i>
+          {{ successMessage() }}
+        </div>
+        <div class="alert alert-danger" *ngIf="errorMessage()">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          {{ errorMessage() }}
+        </div>
+
+        <!-- Personal Information Tab -->
+        <div class="tab-content" *ngIf="activeTab() === 'profile'">
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <i class="fas fa-user me-2"></i>
+                Personal Information
+              </h3>
+              <p>Your account information is managed through Single Sign-On (SSO)</p>
+            </div>
+            <div class="card-body">
+              <div class="sso-info-banner">
+                <div class="sso-icon">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="sso-text">
+                  <h5>Single Sign-On Account</h5>
+                  <p>Your profile information is automatically synced from your organization's identity provider. To update your information, please contact your system administrator or update it through your organization's user management system.</p>
+                </div>
+              </div>
+
+              <div class="profile-display">
+                <div class="form-row">
+                  <div class="info-group">
+                    <label>First Name</label>
+                    <div class="info-value">{{ getFirstName() }}</div>
+                  </div>
+                  <div class="info-group">
+                    <label>Last Name</label>
+                    <div class="info-value">{{ getLastName() }}</div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="info-group">
+                    <label>Email Address</label>
+                    <div class="info-value">{{ getEmail() }}</div>
+                  </div>
+                  <div class="info-group">
+                    <label>Personnel Number</label>
+                    <div class="info-value">{{ getPersonnelNumber() }}</div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="info-group">
+                    <label>Department</label>
+                    <div class="info-value">{{ getDepartment() }}</div>
+                  </div>
+                  <div class="info-group">
+                    <label>Position</label>
+                    <div class="info-value">{{ getPosition() }}</div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="info-group">
+                    <label>Office Location</label>
+                    <div class="info-value">{{ getOfficeLocation() }}</div>
+                  </div>
+                  <div class="info-group">
+                    <label>Phone Number</label>
+                    <div class="info-value">{{ getPhoneNumber() }}</div>
+                  </div>
+                </div>
+
+                <div class="info-group">
+                  <label>Account Type</label>
+                  <div class="info-value">
+                    <span class="account-type-badge">
+                      <i class="fas fa-shield-alt me-2"></i>
+                      SSO Managed
+                    </span>
+                  </div>
+                </div>
+
+                <div class="info-group">
+                  <label>Account Status</label>
+                  <div class="info-value">
+                    <span [class]="isActiveUser() ? 'account-type-badge' : 'sso-indicator'">
+                      <i [class]="isActiveUser() ? 'fas fa-check-circle' : 'fas fa-times-circle'" class="me-2"></i>
+                      {{ isActiveUser() ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications Tab -->
+        <div class="tab-content" *ngIf="activeTab() === 'notifications'">
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <i class="fas fa-bell me-2"></i>
+                Notification Preferences
+              </h3>
+              <p>Choose how you want to receive notifications</p>
+            </div>
+            <div class="card-body">
+              <div class="notification-settings">
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <h5>Email Notifications</h5>
+                    <p>Receive general updates via email</p>
+                  </div>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        [checked]="notifications().emailNotifications"
+                        (change)="updateNotificationSetting('emailNotifications', $any($event.target).checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <h5>SMS Notifications</h5>
+                    <p>Receive urgent alerts via text message</p>
+                  </div>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        [checked]="notifications().smsNotifications"
+                        (change)="updateNotificationSetting('smsNotifications', $any($event.target).checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <h5>Incident Updates</h5>
+                    <p>Get notified about changes to your incident reports</p>
+                  </div>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        [checked]="notifications().incidentUpdates"
+                        (change)="updateNotificationSetting('incidentUpdates', $any($event.target).checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <h5>System Alerts</h5>
+                    <p>Important system notifications and announcements</p>
+                  </div>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        [checked]="notifications().systemAlerts"
+                        (change)="updateNotificationSetting('systemAlerts', $any($event.target).checked)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Settings Tab -->
+        <div class="tab-content" *ngIf="activeTab() === 'preferences'">
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <i class="fas fa-cog me-2"></i>
+                Account Settings
+              </h3>
+              <p>Manage your account data and preferences</p>
+            </div>
+            <div class="card-body">
+              <div class="settings-section">
+                <h4>Data Management</h4>
+                <div class="setting-group">
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h5>Export Account Data</h5>
+                      <p>Download a copy of all your account data and incident reports</p>
+                    </div>
+                    <div class="setting-control">
+                      <button class="btn btn-outline-primary" (click)="exportData()" [disabled]="isLoading()">
+                        <i class="fas fa-download me-2"></i>
+                        Export Data
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h4>Account Information</h4>
+                <div class="setting-group">
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h5>Profile Management</h5>
+                      <p>Your profile is managed through your organization's SSO system</p>
+                    </div>
+                    <div class="setting-control">
+                      <span class="sso-indicator">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        SSO Managed
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section danger-zone">
+                <h4>Account Deactivation</h4>
+                <p class="danger-warning">Deactivating your account will remove access but your SSO account will remain active</p>
+                <div class="setting-group">
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h5>Deactivate Account Access</h5>
+                      <p>Remove access to this system while keeping your SSO account active</p>
+                    </div>
+                    <div class="setting-control">
+                      <button class="btn btn-danger" (click)="deactivateAccount()" [disabled]="isLoading()">
+                        <i class="fas fa-user-times me-2"></i>
+                        Deactivate Access
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

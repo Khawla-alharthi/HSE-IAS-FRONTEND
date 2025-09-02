@@ -1,0 +1,43 @@
+<header class="header">
+    <div class="header-container">
+        <div class="logo-section">
+            <h1 class="app-title" (click)="navigateTo('/dashboard')">HSE Incident Analysis System</h1>
+        </div>
+        
+        <nav class="nav-section" *ngIf="authService.isAuthenticated">
+            <ul>
+                <li>
+                    <a routerLink="/dashboard" 
+                    routerLinkActive="active" 
+                    [routerLinkActiveOptions]="{exact: true}"
+                    class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a routerLink="/main" 
+                    routerLinkActive="active"
+                    class="nav-link">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Incidents</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="user-section">
+            <!-- Show user info and logout when logged in -->
+            <div class="user-info" *ngIf="authService.currentUser$ | async as user">
+                <span class="username">Welcome, {{ getUserDisplayName(user) }}</span>
+                <!-- <span class="user-role" [class.admin]="user.role === 'admin'">{{ user.role }}</span> -->
+                <button class="logout-btn" (click)="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+            
+            <!-- Show login button when not logged in -->
+            <button class="login-btn" *ngIf="!authService.isAuthenticated" (click)="goToLogin()">
+            Login
+            </button>
+        </div>
+    </div>
+</header>

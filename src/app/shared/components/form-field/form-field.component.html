@@ -1,0 +1,81 @@
+<div class="form-group">
+    <label [for]="id" class="form-label" *ngIf="label">
+    {{ label }}
+    <span class="required" *ngIf="required">*</span>
+    </label>
+    
+    <!-- Text Input -->
+    <input 
+    *ngIf="type === 'text' || type === 'email' || type === 'password'"
+    [type]="type"
+    [id]="id"
+    class="form-control"
+    [class.is-invalid]="hasError"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    [value]="value"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+    (focus)="onFocus()">
+    
+    <!-- Number Input -->
+    <input 
+    *ngIf="type === 'number'"
+    type="number"
+    [id]="id"
+    class="form-control"
+    [class.is-invalid]="hasError"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    [min]="min"
+    [max]="max"
+    [step]="step"
+    [value]="value"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+    (focus)="onFocus()">
+    
+    <!-- Textarea -->
+    <textarea 
+    *ngIf="type === 'textarea'"
+    [id]="id"
+    class="form-control"
+    [class.is-invalid]="hasError"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    [rows]="rows"
+    [value]="value"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+    (focus)="onFocus()"></textarea>
+    
+    <!-- Select -->
+    <select 
+    *ngIf="type === 'select'"
+    [id]="id"
+    class="form-control"
+    [class.is-invalid]="hasError"
+    [disabled]="disabled"
+    [value]="value"
+    (change)="onInput($event)"
+    (blur)="onBlur()"
+    (focus)="onFocus()">
+    <option value="" *ngIf="placeholder">{{ placeholder }}</option>
+    <option 
+        *ngFor="let option of options" 
+        [value]="option.value">
+        {{ option.label }}
+    </option>
+    </select>
+    
+    <!-- Help Text -->
+    <div class="form-text" *ngIf="helpText && !hasError">
+    {{ helpText }}
+    </div>
+    
+    <!-- Error Messages -->
+    <div class="invalid-feedback" *ngIf="hasError">
+    <ng-content select="[slot=error]"></ng-content>
+    <span *ngIf="!hasCustomError">{{ errorMessage }}</span>
+    </div>
+</div>

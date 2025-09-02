@@ -1,0 +1,9 @@
+<div class="loading-spinner" [class]="containerClass">
+    <div 
+    class="spinner-border" 
+    [class]="spinnerClass"
+    role="status">
+    <span class="visually-hidden">{{ message }}</span>
+    </div>
+    <p class="loading-message" *ngIf="showMessage">{{ message }}</p>
+</div>

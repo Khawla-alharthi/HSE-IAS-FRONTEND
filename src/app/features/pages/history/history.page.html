@@ -1,0 +1,259 @@
+<div class="main-container">
+  <!-- Header Section -->
+  <div class="main-header">
+    <div class="header-content">
+      <h1 class="page-title">Incident History</h1>
+      <p class="page-description">View and manage your incident reports</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Loading State -->
+    <div class="loading-section" *ngIf="isLoading()">
+      <app-loading-spinner 
+        size="lg" 
+        color="primary"
+        message="Loading incident history..."
+        [showMessage]="true">
+      </app-loading-spinner>
+    </div>
+
+    <!-- History Content -->
+    <div *ngIf="!isLoading()">
+      <!-- Filters Section -->
+      <div class="filters-section">
+        <div class="filters-card">
+          <div class="filters-header">
+            <h3>
+              <i class="fas fa-filter me-2"></i>
+              Filters & Search
+            </h3>
+            <button class="btn btn-outline-secondary btn-sm" (click)="clearFilters()">
+              <i class="fas fa-times me-1"></i>
+              Clear All
+            </button>
+          </div>
+          <div class="filters-content">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="search">Search Reports</label>
+                <div class="search-input">
+                  <i class="fas fa-search"></i>
+                  <input 
+                    type="text" 
+                    id="search"
+                    #searchInput
+                    class="form-control"
+                    placeholder="Search by title or description..."
+                    [value]="filters().search"
+                    (input)="updateSearch(searchInput.value)">
+                </div>
+              </div>
+              <div class="filter-group">
+                <label for="level">Analysis Level</label>
+                <select 
+                  id="level" 
+                  #levelSelect
+                  class="form-select"
+                  [value]="filters().level"
+                  (change)="updateLevel(levelSelect.value)">
+                  <option value="">All Levels</option>
+                  <option value="1">Level 1 - Basic Analysis</option>
+                  <option value="2">Level 2 - Low Priority</option>
+                  <option value="3">Level 3 - Moderate Analysis</option>
+                  <option value="4">Level 4 - Detailed Analysis</option>
+                  <option value="5">Level 5 - Comprehensive Analysis</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="dateFrom">From Date</label>
+                <input 
+                  type="date" 
+                  id="dateFrom"
+                  #dateFromInput
+                  class="form-control"
+                  [value]="filters().dateFrom"
+                  (change)="updateDateFrom(dateFromInput.value)">
+              </div>
+              <div class="filter-group">
+                <label for="dateTo">To Date</label>
+                <input 
+                  type="date" 
+                  id="dateTo"
+                  #dateToInput
+                  class="form-control"
+                  [value]="filters().dateTo"
+                  (change)="updateDateTo(dateToInput.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div class="results-section">
+        <div class="results-header">
+          <div class="results-info">
+            <h4>{{ filteredIncidents().length }} Results Found</h4>
+            <p *ngIf="filters().search || filters().level || filters().dateFrom || filters().dateTo">
+              Showing filtered results
+            </p>
+          </div>
+          <div class="sort-controls">
+            <label>Sort by:</label>
+            <div class="sort-buttons">
+              <button 
+                class="btn btn-outline-primary btn-sm"
+                [class.active]="filters().sortBy === 'date'"
+                (click)="updateSort('date')">
+                Date
+                <i class="fas fa-sort-up" *ngIf="filters().sortBy === 'date' && filters().sortOrder === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="filters().sortBy === 'date' && filters().sortOrder === 'desc'"></i>
+              </button>
+              <button 
+                class="btn btn-outline-primary btn-sm"
+                [class.active]="filters().sortBy === 'level'"
+                (click)="updateSort('level')">
+                Level
+                <i class="fas fa-sort-up" *ngIf="filters().sortBy === 'level' && filters().sortOrder === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="filters().sortBy === 'level' && filters().sortOrder === 'desc'"></i>
+              </button>
+              <button 
+                class="btn btn-outline-primary btn-sm"
+                [class.active]="filters().sortBy === 'title'"
+                (click)="updateSort('title')">
+                Title
+                <i class="fas fa-sort-up" *ngIf="filters().sortBy === 'title' && filters().sortOrder === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="filters().sortBy === 'title' && filters().sortOrder === 'desc'"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incidents List -->
+        <div class="incidents-list" *ngIf="paginatedIncidents().length > 0; else noIncidents">
+          <div *ngFor="let incident of paginatedIncidents(); trackBy: trackIncidentById" 
+               class="incident-item"
+               (click)="viewIncident(incident)">
+            <div class="incident-level-indicator" 
+                 [style.background-color]="getIncidentLevelBadgeClass(getIncidentLevel(incident)) === 'badge-danger' ? '#e74c3c' : getIncidentLevelBadgeClass(getIncidentLevel(incident)) === 'badge-warning' ? '#f39c12' : '#17a2b8'">
+            </div>
+            <div class="incident-content">
+              <div class="incident-header">
+                <h5>{{ getIncidentTitle(incident) }}</h5>
+                <div class="incident-meta">
+                  <span class="badge" [class]="getIncidentLevelBadgeClass(getIncidentLevel(incident))">
+                    {{ incident.analysisLevel || 'Level 3 - Moderate Analysis' }}
+                  </span>
+                  <span class="incident-date">{{ formatDateShort(incident.recordedDate) }}</span>
+                </div>
+              </div>
+              <div class="incident-description">
+                <p>{{ getIncidentDescription(incident) }}</p>
+              </div>
+              <div class="incident-footer">
+                <div class="incident-details">
+                  <span class="detail-item">
+                    <i class="fas fa-calendar me-1"></i>
+                    {{ formatDate(incident.recordedDate) }}
+                  </span>
+                  <span class="detail-item" *ngIf="hasAnalysisComplete(incident)">
+                    <i class="fas fa-check-circle text-success me-1"></i>
+                    Analysis Complete
+                  </span>
+                  <span class="detail-item" *ngIf="!hasAnalysisComplete(incident)">
+                    <i class="fas fa-clock text-warning me-1"></i>
+                    Pending Analysis
+                  </span>
+                </div>
+                <div class="incident-actions">
+                  <button class="btn btn-sm btn-outline-primary" (click)="editIncident(incident); $event.stopPropagation()">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                  </button>
+                  <button class="btn btn-sm btn-primary" (click)="viewIncident(incident); $event.stopPropagation()">
+                    <i class="fas fa-eye"></i>
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-section" *ngIf="totalPages() > 1">
+          <nav aria-label="Incident history pagination">
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="currentPage() === 1">
+                <button class="page-link" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1">
+                  <i class="fas fa-chevron-left"></i>
+                  Previous
+                </button>
+              </li>
+              
+              <li *ngFor="let page of [].constructor(totalPages()); let i = index" 
+                  class="page-item" 
+                  [class.active]="currentPage() === i + 1">
+                <button class="page-link" (click)="goToPage(i + 1)">
+                  {{ i + 1 }}
+                </button>
+              </li>
+              
+              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                <button class="page-link" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()">
+                  Next
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <!-- Empty State -->
+        <ng-template #noIncidents>
+          <div class="empty-state">
+            <div class="empty-icon">
+              <i class="fas fa-inbox"></i>
+            </div>
+            <h3>No Incidents Found</h3>
+            <p *ngIf="filters().search || filters().level || filters().dateFrom || filters().dateTo">
+              No incidents match your current filters. Try adjusting your search criteria.
+            </p>
+            <p *ngIf="!filters().search && !filters().level && !filters().dateFrom && !filters().dateTo">
+              You haven't created any incident reports yet.
+            </p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" (click)="navigateToCreateIncident()">
+                <i class="fas fa-plus me-2"></i>
+                Create Your First Report
+              </button>
+              <button class="btn btn-outline-secondary ms-2" (click)="clearFilters()" 
+                      *ngIf="filters().search || filters().level || filters().dateFrom || filters().dateTo">
+                <i class="fas fa-times me-2"></i>
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- View Modal -->
+    <app-incident-view-modal 
+      [incident]="selectedIncidentForView()"
+      (close)="closeViewModal()"
+      (edit)="onEditFromView($event)">
+    </app-incident-view-modal>
+
+    <!-- Edit Modal -->
+    <app-incident-edit-modal 
+      [incident]="selectedIncidentForEdit()"
+      (close)="closeEditModal()"
+      (save)="saveIncident($event)">
+    </app-incident-edit-modal>
+  </div>
+</div>

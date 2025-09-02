@@ -1,0 +1,15 @@
+<div class="hierarchy-diagram-container">    
+    <div 
+    #diagramDiv 
+    class="diagram-canvas"
+    [style.height]="options.height || '600px'"
+    [style.background]="options.background || '#f8f9fa'">
+    </div>
+    
+    <div class="diagram-loading" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading diagram...</span>
+    </div>
+    <p class="mt-2">Rendering diagram...</p>
+    </div>
+</div>

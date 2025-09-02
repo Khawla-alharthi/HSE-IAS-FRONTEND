@@ -1,0 +1,303 @@
+<div class="modal-overlay" *ngIf="isOpen()" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="fas fa-edit me-2"></i>
+        Edit Incident Report
+      </h2>
+      <button class="modal-close-btn" (click)="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="editForm" (ngSubmit)="onSubmit()" *ngIf="editForm">
+      <div class="modal-body">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <h3>
+            <i class="fas fa-info-circle me-2"></i>
+            Basic Information
+          </h3>
+          
+          <div class="form-group">
+            <label for="title" class="form-label">
+              Report Title
+              <span class="text-muted">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              class="form-control"
+              formControlName="title"
+              placeholder="Enter a title for this incident report...">
+          </div>
+
+          <div class="form-group">
+            <label for="level" class="form-label">
+              Analysis Level
+              <span class="required">*</span>
+            </label>
+            <select
+              id="level"
+              class="form-select"
+              formControlName="level"
+              (change)="onLevelChange($event)">
+              <option value="1">Level 1 - Minor</option>
+              <option value="2">Level 2 - Low</option>
+              <option value="3">Level 3 - Medium</option>
+              <option value="4">Level 4 - High</option>
+              <option value="5">Level 5 - Critical</option>
+            </select>
+            <div class="level-description" *ngIf="editForm.get('level')?.value">
+              {{ getLevelDescription(editForm.get('level')?.value) }}
+            </div>
+            <div class="level-change-notice" *ngIf="editForm && editForm.get('level')?.value !== originalLevel()">
+              <i class="fas fa-info-circle me-1"></i>
+              Level changed - click "Regenerate Diagram" to update analysis
+            </div>
+          </div>
+        </div>
+
+        <!-- Incident Description -->
+        <div class="form-section">
+          <h3>
+            <i class="fas fa-file-text me-2"></i>
+            Incident Description
+          </h3>
+          
+          <div class="form-group">
+            <label for="incident" class="form-label">
+              Describe the incident
+              <span class="required">*</span>
+            </label>
+            <textarea
+              id="incident"
+              class="form-control"
+              formControlName="incident"
+              rows="6"
+              placeholder="Provide a detailed description of the incident..."></textarea>
+            <div class="form-error" *ngIf="editForm.get('incident')?.invalid && editForm.get('incident')?.touched">
+              <i class="fas fa-exclamation-circle me-1"></i>
+              <span *ngIf="editForm.get('incident')?.errors?.['required']">Incident description is required</span>
+              <span *ngIf="editForm.get('incident')?.errors?.['minlength']">Incident description must be at least 10 characters</span>
+            </div>
+            <div class="character-count">
+              {{ editForm.get('incident')?.value?.length || 0 }} characters
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis Diagram Section -->
+        <div class="form-section" *ngIf="showDiagramSection()">
+          <div class="section-header">
+            <h3>
+              <i class="fas fa-project-diagram me-2"></i>
+              Analysis Diagram
+            </h3>
+            <div class="diagram-controls">
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                (click)="regenerateDiagram()"
+                [disabled]="isGeneratingDiagram() || !canRegenerateDiagram()">
+                <i class="fas fa-spinner fa-spin me-2" *ngIf="isGeneratingDiagram()"></i>
+                <i class="fas fa-sync me-2" *ngIf="!isGeneratingDiagram()"></i>
+                {{ isGeneratingDiagram() ? 'Generating...' : 'Regenerate Diagram' }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-success btn-sm"
+                (click)="addNewNode()"
+                [disabled]="isSaving() || isGeneratingDiagram()"
+                *ngIf="totalNodesCount() > 0">
+                <i class="fas fa-plus me-2"></i>
+                Add Node
+              </button>
+            </div>
+          </div>
+
+          <!-- Diagram Generation Status -->
+          <div class="diagram-status" *ngIf="isGeneratingDiagram()">
+            <div class="loading-indicator">
+              <i class="fas fa-cogs fa-spin me-2"></i>
+              Analyzing incident at Level {{ editForm.get('level')?.value }}...
+            </div>
+          </div>
+
+          <!-- Editable Diagram -->
+          <div class="diagram-editor" *ngIf="totalNodesCount() > 0 && !isGeneratingDiagram()">
+            <div class="diagram-info">
+              <p class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Click on any node to edit its content. Use the hierarchy below to organize your analysis.
+              </p>
+            </div>
+
+            <!-- Diagram Visualization by Levels -->
+            <div class="diagram-hierarchy">
+              <ng-container *ngFor="let level of getLevelsArray(); let levelIndex = index">
+                <div class="diagram-level" *ngIf="getNodesByLevel()[levelIndex] && getNodesByLevel()[levelIndex].length > 0">
+                  <div class="level-header">
+                    <span class="level-indicator">Level {{ levelIndex }}</span>
+                    <span class="level-type">{{ levelIndex === 0 ? 'Root Analysis' : 'Sub-Analysis' }}</span>
+                  </div>
+                  
+                  <div class="level-nodes">
+                    <div *ngFor="let node of getNodesByLevel()[levelIndex]" 
+                         class="editable-node"
+                         [class.editing]="isEditingNode(node.key)"
+                         [class.root-node]="levelIndex === 0">
+                      
+                      <!-- Display Mode -->
+                      <div class="node-display" 
+                           *ngIf="!isEditingNode(node.key)"
+                           (click)="startEditingNode(node.key)">
+                        <div class="node-content">
+                          <div class="node-text">{{ node.name }}</div>
+                          <div class="node-actions">
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary"
+                                    (click)="startEditingNode(node.key); $event.stopPropagation()"
+                                    [disabled]="isGeneratingDiagram()">
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger"
+                                    (click)="removeNode(node.key); $event.stopPropagation()"
+                                    [disabled]="isGeneratingDiagram()">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Edit Mode -->
+                      <div class="node-edit" *ngIf="isEditingNode(node.key)">
+                        <div class="edit-form">
+                          <textarea
+                            class="form-control"
+                            [value]="node.name"
+                            #nodeTextarea
+                            placeholder="Enter your analysis text..."
+                            rows="3"
+                            [disabled]="isGeneratingDiagram()"
+                            (keydown)="onKeyDown($event, node.key, nodeTextarea.value)"
+                            (keydown.escape)="stopEditingNode()"></textarea>
+                          <div class="edit-actions">
+                            <button type="button" 
+                                    class="btn btn-sm btn-success"
+                                    (click)="updateNodeText(node.key, nodeTextarea.value)"
+                                    [disabled]="!nodeTextarea.value || !nodeTextarea.value.trim()">
+                              <i class="fas fa-check me-1"></i>
+                              Save
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-secondary"
+                                    (click)="stopEditingNode()">
+                              <i class="fas fa-times me-1"></i>
+                              Cancel
+                            </button>
+                          </div>
+                          <div class="edit-help">
+                            <small class="text-muted">
+                              Press Ctrl+Enter to save, or Escape to cancel
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+
+            <!-- Diagram Summary -->
+            <div class="diagram-summary">
+              <h5>
+                <i class="fas fa-chart-tree me-2"></i>
+                Analysis Summary
+              </h5>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <span class="summary-label">Total Points:</span>
+                  <span class="summary-value">{{ totalNodesCount() }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Root Points:</span>
+                  <span class="summary-value">{{ rootNodesCount() }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Analysis Depth:</span>
+                  <span class="summary-value">{{ getMaxLevel() + 1 }} levels</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Current Level:</span>
+                  <span class="summary-value badge badge-primary">Level {{ editForm.get('level')?.value }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty Diagram State -->
+          <div class="empty-diagram" *ngIf="totalNodesCount() === 0 && !isGeneratingDiagram()">
+            <div class="empty-icon">
+              <i class="fas fa-project-diagram"></i>
+            </div>
+            <h4>No Analysis Available</h4>
+            <p>Generate a visual analysis diagram based on your incident description and level.</p>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="regenerateDiagram()"
+              [disabled]="!canRegenerateDiagram()">
+              <i class="fas fa-magic me-2"></i>
+              Generate Analysis Diagram
+            </button>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert alert-danger" *ngIf="formError()">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ formError() }}
+        </div>
+
+        <div class="alert alert-warning" *ngIf="diagramError()">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ diagramError() }}
+          <button 
+            type="button" 
+            class="btn btn-sm btn-outline-warning ms-2" 
+            (click)="diagramError.set('')">
+            Dismiss
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          (click)="closeModal()"
+          [disabled]="isSaving() || isGeneratingDiagram()">
+          <i class="fas fa-times me-2"></i>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="editForm.invalid || isSaving() || isGeneratingDiagram() || editingNodeId() !== null">
+          <i class="fas fa-spinner fa-spin me-2" *ngIf="isSaving()"></i>
+          <i class="fas fa-save me-2" *ngIf="!isSaving()"></i>
+          {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+        </button>
+        <div class="save-notice" *ngIf="editingNodeId() !== null">
+          <small class="text-warning">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Finish editing current node before saving
+          </small>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

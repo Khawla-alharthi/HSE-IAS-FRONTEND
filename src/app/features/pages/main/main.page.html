@@ -1,0 +1,246 @@
+<!-- main.page.html -->
+<div class="main-container">
+  <!-- Header Section -->
+  <div class="main-header">
+    <div class="header-content">
+      <h1 class="page-title">HSE Incident Analysis</h1>
+      <p class="page-description">Create cause-effect diagrams to analyze workplace incidents</p>
+      
+      <!-- <div class="user-welcome" *ngIf="currentUser">
+        <span class="welcome-text">Welcome back, {{ currentUser.firstName }}!</span>
+        <span class="user-badge" [class.admin-badge]="currentUser.role === 'admin'">
+          {{ currentUser.role }}
+        </span>
+      </div> -->
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Success/Error Messages -->
+    <div class="alert alert-success" *ngIf="successMessage">
+      <i class="fas fa-check-circle me-2"></i>
+      {{ successMessage }}
+    </div>
+    
+    <div class="alert alert-danger" *ngIf="errorMessage">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      {{ errorMessage }}
+    </div>
+
+    <!-- Incident Form Section -->
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-edit me-2"></i>
+          Incident Details
+        </h2>
+        <p class="section-description">
+          Describe the incident to generate a cause-effect analysis diagram
+        </p>
+      </div>
+
+      <form [formGroup]="incidentForm" class="incident-form">
+        <div class="form-row">
+          <!-- Incident Description -->
+          <div class="form-col form-col-full">
+            <app-form-field
+              type="textarea"
+              label="Incident Description"
+              placeholder="Describe the incident in detail (minimum 10 characters)"
+              helpText="Provide a clear and detailed description of what happened"
+              [required]="true"
+              [hasError]="isFieldInvalid('incident')"
+              [errorMessage]="getFieldError('incident')"
+              [rows]="4"
+              formControlName="incident">
+            </app-form-field>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <!-- Analysis Level -->
+          <div class="form-col">
+            <app-form-field
+              type="select"
+              label="Analysis Level"
+              placeholder="Select analysis depth"
+              helpText="Higher levels provide more detailed analysis"
+              [required]="true"
+              [hasError]="isFieldInvalid('level')"
+              [errorMessage]="getFieldError('level')"
+              [options]="levelOptions"
+              formControlName="level">
+            </app-form-field>
+          </div>
+
+          <!-- Title (Optional) -->
+          <div class="form-col">
+            <app-form-field
+              type="text"
+              label="Title"
+              [required]="true"
+              placeholder="Brief title for this analysis"
+              helpText="Leave blank to auto-generate from description"
+              formControlName="title">
+            </app-form-field>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <!-- Notes -->
+          <div class="form-col form-col-full">
+            <app-form-field
+              type="textarea"
+              label="Additional Notes (Optional)"
+              placeholder="Any additional context or observations"
+              helpText="Optional notes about the incident or analysis"
+              [rows]="3"
+              formControlName="notes">
+            </app-form-field>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-primary btn-generate"
+            [disabled]="!canGenerate"
+            (click)="onGenerateDiagram()">
+            <span *ngIf="!isGenerating">
+              <i class="fas fa-sitemap me-2"></i>
+              Generate Diagram
+            </span>
+            <app-loading-spinner 
+              *ngIf="isGenerating"
+              size="sm" 
+              color="light"
+              [showMessage]="false">
+            </app-loading-spinner>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-success btn-save"
+            [disabled]="!canSave"
+            (click)="onSaveIncident()"
+            *ngIf="showDiagram">
+            <span *ngIf="!isSaving">
+              <i class="fas fa-save me-2"></i>
+              Save Analysis
+            </span>
+            <app-loading-spinner 
+              *ngIf="isSaving"
+              size="sm" 
+              color="light"
+              [showMessage]="false">
+            </app-loading-spinner>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary btn-new"
+            (click)="onNewAnalysis()"
+            *ngIf="showDiagram && !isGenerating && !isSaving">
+            <i class="fas fa-plus me-2"></i>
+            New Analysis
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading Section -->
+    <div class="loading-section" *ngIf="isGenerating">
+      <app-loading-spinner 
+        size="lg" 
+        color="primary"
+        message="Generating cause-effect diagram..."
+        [showMessage]="true">
+      </app-loading-spinner>
+    </div>
+
+    <!-- Diagram Section -->
+    <div class="diagram-section" *ngIf="showDiagram && !isGenerating">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-project-diagram me-2"></i>
+          Cause-Effect Diagram
+        </h2>
+        <p class="section-description">
+          Interactive diagram showing potential causes and effects of the incident
+        </p>
+        
+        <div class="diagram-actions">
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            (click)="onExportDiagram()">
+            <i class="fas fa-print me-2"></i>
+            Print / Export
+          </button>
+        </div>
+      </div>
+
+      <div class="diagram-container">
+        <app-hierarchy-diagram
+          [data]="diagramData"
+          [options]="diagramOptions"
+          [loading]="false"
+          (diagramReady)="onDiagramReady()"
+          (exportRequested)="onExportDiagram()">
+        </app-hierarchy-diagram>
+      </div>
+
+      <div class="diagram-info">
+        <div class="info-card">
+          <h4>How to Use</h4>
+          <ul>
+            <li>Zoom in/out using mouse wheel or controls</li>
+            <li>Pan around by clicking and dragging</li>
+            <li>Colors represent different analysis levels</li>
+            <li>Click "Print / Export" to save the diagram</li>
+          </ul>
+        </div>
+        
+        <div class="info-card">
+          <h4>Analysis Summary</h4>
+          <div class="summary-stats">
+            <div class="stat-item">
+              <span class="stat-label">Level:</span>
+              <span class="stat-value">{{ incidentForm.get('level')?.value }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Nodes:</span>
+              <span class="stat-value">{{ diagramData.length }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions" *ngIf="!isGenerating && !showDiagram">
+      <h3>Quick Start</h3>
+      <div class="action-cards">
+        <div class="action-card" (click)="fillSampleData('fire')">
+          <i class="fas fa-fire"></i>
+          <h4>Fire Incident</h4>
+          <p>Analyze fire-related incidents</p>
+        </div>
+        
+        <div class="action-card" (click)="fillSampleData('slip')">
+          <i class="fas fa-walking"></i>
+          <h4>Slip & Fall</h4>
+          <p>Analyze slip and fall incidents</p>
+        </div>
+        
+        <div class="action-card" (click)="fillSampleData('chemical')">
+          <i class="fas fa-flask"></i>
+          <h4>Chemical Spill</h4>
+          <p>Analyze chemical-related incidents</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

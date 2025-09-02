@@ -1,0 +1,104 @@
+<div class="modal-overlay" *ngIf="isOpen()" (click)="closeModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+        <h2 class="modal-title">
+        <i class="fas fa-eye me-2"></i>
+        Incident Report Details
+        </h2>
+        <button class="modal-close-btn" (click)="closeModal()">
+        <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="modal-body" *ngIf="incident">
+        <!-- Incident Header Info -->
+        <div class="incident-summary">
+        <div class="summary-item">
+            <label>Title:</label>
+            <span>{{ incident.title || 'Untitled Report' }}</span>
+        </div>
+        <div class="summary-item" *ngIf="incident.analysisLevel">
+            <label>Analysis Level:</label>
+            <span class="badge" [class]="getIncidentLevelBadgeClass(incident.analysisLevel)">
+            Level {{ incident.analysisLevel }}
+            </span>
+        </div>
+        <div class="summary-item">
+            <label>Recorded:</label>
+            <span>{{ formatDate(incident.recordedDate) }}</span>
+        </div>
+        </div>
+
+        <!-- Incident Description -->
+        <div class="incident-section">
+        <h3>
+            <i class="fas fa-file-text me-2"></i>
+            Incident Description
+        </h3>
+        <div class="incident-content">
+            <p>{{ incident.description || 'No description provided' }}</p>
+            <div *ngIf="incident.details" class="incident-details">
+                <h4>Additional Details:</h4>
+                <p>{{ incident.details }}</p>
+            </div>
+        </div>
+        </div>
+
+        <!-- Analysis Results -->
+        <div class="incident-section" *ngIf="incident.diagrams && incident.diagrams.length > 0">
+        <h3>
+            <i class="fas fa-chart-network me-2"></i>
+            Analysis Results
+        </h3>
+        <div class="analysis-grid">
+            <div *ngFor="let diagram of incident.diagrams; let i = index" class="analysis-item">
+            <h4>{{ diagram.title }}</h4>
+            <div class="analysis-content">
+                <p class="text-muted">
+                <i class="fas fa-sitemap me-1"></i>
+                Diagram ID: {{ diagram.id }}
+                </p>
+                <p class="text-muted">
+                <i class="fas fa-calendar me-1"></i>
+                Created: {{ formatDate(diagram.createdAt) }}
+                </p>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Additional Metadata -->
+        <div class="incident-section" *ngIf="hasMetadata()">
+        <h3>
+            <i class="fas fa-info-circle me-2"></i>
+            Additional Information
+        </h3>
+        <div class="metadata-grid">
+            <div class="metadata-item" *ngIf="incident.id">
+            <label>Report ID:</label>
+            <span class="text-monospace">{{ incident.id }}</span>
+            </div>
+            <div class="metadata-item" *ngIf="incident.userName">
+            <label>Reported by:</label>
+            <span>{{ incident.userName }}</span>
+            </div>
+            <div class="metadata-item" *ngIf="incident.user?.userData?.firstName && incident.user?.userData?.lastName">
+            <label>User:</label>
+            <span>{{ incident.user?.userData?.firstName }} {{ incident.user?.userData?.lastName }}</span>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button class="btn btn-outline-primary" (click)="onEdit()">
+        <i class="fas fa-edit me-2"></i>
+        Edit Report
+        </button>
+        <button class="btn btn-secondary" (click)="closeModal()">
+        <i class="fas fa-times me-2"></i>
+        Close
+        </button>
+    </div>
+    </div>
+</div>

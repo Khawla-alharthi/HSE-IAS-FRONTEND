@@ -1,0 +1,541 @@
+<div class="main-container">
+  <!-- Header Section -->
+  <div class="main-header">
+    <div class="header-content">
+      <h1 class="page-title">Admin Dashboard</h1>
+      <p class="page-description">Manage users, incidents, and system analytics</p>
+      
+      <nav aria-label="breadcrumb" class="breadcrumb-nav">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a routerLink="/dashboard">Dashboard</a>
+          </li>
+          <li class="breadcrumb-item active">Admin</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Loading State -->
+    <div class="loading-section" *ngIf="isLoading()">
+      <app-loading-spinner 
+        size="lg" 
+        color="primary"
+        message="Loading dashboard data..."
+        [showMessage]="true">
+      </app-loading-spinner>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div *ngIf="!isLoading()">
+      <!-- Navigation Tabs -->
+      <div class="admin-nav-section">
+        <div class="nav-tabs-container">
+          <ul class="nav nav-tabs">
+            <li class="nav-item">
+              <button 
+                class="nav-link"
+                [class.active]="currentSection() === 'overview'"
+                (click)="setActiveSection('overview')">
+                <i class="fas fa-chart-line me-2"></i>
+                Overview
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                class="nav-link"
+                [class.active]="currentSection() === 'incidents'"
+                (click)="setActiveSection('incidents')">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Incidents ({{ stats().totalIncidents }})
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                class="nav-link"
+                [class.active]="currentSection() === 'users'"
+                (click)="setActiveSection('users')">
+                <i class="fas fa-users me-2"></i>
+                Users ({{ stats().totalUsers }})
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Overview Section -->
+      <div *ngIf="currentSection() === 'overview'" class="overview-section">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stats-card">
+            <div class="stats-icon bg-primary">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stats-content">
+              <h3>{{ stats().totalIncidents }}</h3>
+              <p>Total Incidents</p>
+            </div>
+          </div>
+          
+          <div class="stats-card">
+            <div class="stats-icon bg-success">
+              <i class="fas fa fa-calendar"></i>
+            </div>
+            <div class="stats-content">
+              <h3>{{ stats().thisMonthIncidents }}</h3>
+              <p>This Month</p>
+            </div>
+          </div>
+          
+          <div class="stats-card">
+            <div class="stats-icon bg-info">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stats-content">
+              <h3>{{ stats().totalUsers }}</h3>
+              <p>Total Users</p>
+            </div>
+          </div>
+          
+          <div class="stats-card">
+            <div class="stats-icon bg-warning">
+              <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="stats-content">
+              <h3>{{ Object.keys(stats().incidentsByLevel).length }}</h3>
+              <p>Analysis Levels</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+          <!-- Incidents by Analysis Level Chart -->
+          <div class="chart-card">
+            <div class="section-header">
+              <h3 class="section-title">
+                <i class="fas fa-chart-bar me-2"></i>
+                Incidents by Analysis Level
+              </h3>
+            </div>
+            <div class="chart-content">
+              <div class="level-chart">
+                <div *ngFor="let item of Object.entries(stats().incidentsByLevel)" class="level-item">
+                  <div class="level-info">
+                    <span class="level-label">{{ item[0] }}</span>
+                    <span class="level-count">{{ item[1] }}</span>
+                  </div>
+                  <div class="level-bar">
+                    <div class="level-progress" 
+                         [style.width.%]="stats().totalIncidents > 0 ? (item[1] / stats().totalIncidents) * 100 : 0">
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="Object.keys(stats().incidentsByLevel).length === 0" class="empty-chart">
+                  <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                  <p>No data available</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="chart-card">
+            <div class="section-header">
+              <h3 class="section-title">
+                <i class="fas fa-clock me-2"></i>
+                Recent Activity
+              </h3>
+            </div>
+            <div class="chart-content">
+              <div class="activity-list" *ngIf="stats().recentActivity.length > 0; else noActivity">
+                <div *ngFor="let incident of stats().recentActivity" class="activity-item">
+                  <div class="activity-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                  </div>
+                  <div class="activity-content">
+                    <h6>{{ incident.title || 'Untitled Incident' }}</h6>
+                    <p>{{ (incident.description || incident.details || '').length > 80 ? (incident.description || incident.details || '').substring(0, 80) + '...' : (incident.description || incident.details || '') }}</p>
+                    <small class="text-muted">
+                      <i class="fas fa-calendar me-1"></i>
+                      {{ formatDate(incident.recordedDate) }}
+                    </small>
+                  </div>
+                  <div class="activity-badge">
+                    <span class="badge" [class]="getAnalysisLevelBadgeClass(incident.analysisLevel)">
+                      {{ incident.analysisLevel || 'Unknown' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <ng-template #noActivity>
+                <div class="empty-state-small">
+                  <i class="fas fa-inbox fa-2x mb-2"></i>
+                  <p>No recent activity</p>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Incidents Management Section -->
+      <div *ngIf="currentSection() === 'incidents'" class="management-section">
+        <div class="section-header">
+          <div class="header-content">
+            <h2 class="section-title">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Incident Management
+            </h2>
+            <p class="section-description">View, edit, and manage all incident reports</p>
+          </div>
+          <button class="btn btn-primary" routerLink="/incidents/create">
+            <i class="fas fa-plus me-2"></i>
+            New Incident
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+          <div class="filters-row">
+            <div class="filter-group">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  placeholder="Search incidents..."
+                  (input)="onIncidentSearch($event)">
+              </div>
+            </div>
+            <div class="filter-group">
+              <select class="form-select" (change)="onAnalysisLevelFilterChange($event)">
+                <option value="">All Analysis Levels</option>
+                <option *ngFor="let level of availableAnalysisLevels()" [value]="level">{{ level }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incidents Table -->
+        <div class="data-table-section">
+          <div class="table-container">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Analysis Level</th>
+                    <th>Created</th>
+                    <th>User</th>
+                    <th width="150">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let incident of filteredIncidents(); trackBy: trackIncidentById" class="table-row">
+                    <td>
+                      <div class="cell-content">
+                        <strong>{{ incident.title || 'Untitled' }}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="incident-preview">
+                        {{ (incident.description || incident.details || '').length > 100 ? (incident.description || incident.details || '').substring(0, 100) + '...' : (incident.description || incident.details || '') }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge" [class]="getAnalysisLevelBadgeClass(incident.analysisLevel)">
+                        {{ incident.analysisLevel || 'Unknown' }}
+                      </span>
+                    </td>
+                    <td class="date-cell">{{ formatDate(incident.recordedDate) }}</td>
+                    <td class="user-cell">{{ incident.userName }}</td>
+                    <td>
+                      <div class="action-buttons">
+                        <button 
+                          class="btn btn-sm btn-outline-primary" 
+                          (click)="viewIncident(incident)"
+                          title="View">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button 
+                          class="btn btn-sm btn-outline-secondary" 
+                          (click)="editIncident(incident)"
+                          title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button 
+                          class="btn btn-sm btn-outline-danger" 
+                          (click)="confirmDeleteIncident(incident)"
+                          [disabled]="isDeletingIncident() === incident.id.toString()"
+                          title="Delete">
+                          <i *ngIf="isDeletingIncident() !== incident.id.toString()" class="fas fa-trash"></i>
+                          <div *ngIf="isDeletingIncident() === incident.id.toString()" class="spinner-border spinner-border-sm" role="status"></div>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="filteredIncidents().length === 0 && !isLoadingIncidents()" class="empty-state">
+            <i class="fas fa-exclamation-triangle empty-state-icon"></i>
+            <h4 class="empty-state-title">No Incidents Found</h4>
+            <p class="empty-state-text">
+              No incidents match your current filters. Try adjusting your search criteria.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Management Section -->
+      <div *ngIf="currentSection() === 'users'" class="management-section">
+        <div class="section-header">
+          <div class="header-content">
+            <h2 class="section-title">
+              <i class="fas fa-users me-2"></i>
+              User Management
+            </h2>
+            <p class="section-description">Manage user accounts and permissions</p>
+          </div>
+          <button class="btn btn-primary" (click)="openUserModal()">
+            <i class="fas fa-plus me-2"></i>
+            New User
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+          <div class="filters-row">
+            <div class="filter-group">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  placeholder="Search users..."
+                  (input)="onUserSearch($event)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="data-table-section">
+          <div class="table-container">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th width="150">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let user of filteredUsers(); trackBy: trackUserById" class="table-row">
+                    <td>
+                      <div class="user-info">
+                        <div class="user-avatar">
+                          {{ user.userData ? (user.userData.firstName.charAt(0) + user.userData.lastName.charAt(0)) : user.userName.substring(0, 2).toUpperCase() }}
+                        </div>
+                        <div class="user-details">
+                          <strong>{{ user.userData ? (user.userData.firstName + ' ' + user.userData.lastName) : user.userName }}</strong>
+                          <br>
+                          <small class="text-muted">{{ user.userName }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="email-cell">{{ user.userData?.emailAddress || 'N/A' }}</td>
+                    <td>
+                      <span class="badge" [class]="getUserRoleBadgeClass(user)">
+                        {{ user.role?.role || 'Unknown' }}
+                      </span>
+                    </td>
+                    <td class="date-cell">{{ user.userData?.department || 'N/A' }}</td>
+                    <td>
+                      <div class="action-buttons">
+                        <button 
+                          class="btn btn-sm btn-outline-secondary" 
+                          (click)="openUserModal(user)"
+                          title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button 
+                          class="btn btn-sm btn-outline-danger" 
+                          (click)="confirmDeleteUser(user)"
+                          [disabled]="isDeletingUser() === user.id.toString()"
+                          title="Delete">
+                          <i *ngIf="isDeletingUser() !== user.id.toString()" class="fas fa-trash"></i>
+                          <div *ngIf="isDeletingUser() === user.id.toString()" class="spinner-border spinner-border-sm" role="status"></div>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="filteredUsers().length === 0 && !isLoadingUsers()" class="empty-state">
+            <i class="fas fa-users empty-state-icon"></i>
+            <h4 class="empty-state-title">No Users Found</h4>
+            <p class="empty-state-text">
+              No users match your search criteria.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal-overlay" [class.show]="showUserModal()" *ngIf="showUserModal()" (click)="closeUserModal()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <i class="fas fa-user me-2"></i>
+            {{ editingUserId() ? 'Edit User' : 'Create New User' }}
+          </h3>
+          <button type="button" class="modal-close" (click)="closeUserModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="userForm" (ngSubmit)="saveUser()">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label for="firstName" class="form-label">First Name</label>
+                  <input 
+                    id="firstName"
+                    type="text" 
+                    class="form-control" 
+                    formControlName="firstName" 
+                    placeholder="Enter first name"
+                    [class.is-invalid]="isFieldInvalid('firstName')">
+                  <div class="invalid-feedback" *ngIf="isFieldInvalid('firstName')">
+                    {{ getFieldError('firstName') }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label for="lastName" class="form-label">Last Name</label>
+                  <input 
+                    id="lastName"
+                    type="text" 
+                    class="form-control" 
+                    formControlName="lastName" 
+                    placeholder="Enter last name"
+                    [class.is-invalid]="isFieldInvalid('lastName')">
+                  <div class="invalid-feedback" *ngIf="isFieldInvalid('lastName')">
+                    {{ getFieldError('lastName') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group mb-3">
+                  <label for="email" class="form-label">Email</label>
+                  <input 
+                    id="email"
+                    type="email" 
+                    class="form-control" 
+                    formControlName="email" 
+                    placeholder="Enter email address"
+                    [class.is-invalid]="isFieldInvalid('email')">
+                  <div class="invalid-feedback" *ngIf="isFieldInvalid('email')">
+                    {{ getFieldError('email') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group mb-3">
+                  <label for="role" class="form-label">Role</label>
+                  <select 
+                    id="role"
+                    class="form-select" 
+                    formControlName="role"
+                    [class.is-invalid]="isFieldInvalid('role')">
+                    <option value="1">Administrator</option>
+                    <option value="2">Manager</option>
+                    <option value="3">User</option>
+                    <option value="4">Guest</option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="isFieldInvalid('role')">
+                    {{ getFieldError('role') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeUserModal()">
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="saveUser()"
+            [disabled]="userForm.invalid">
+            {{ editingUserId() ? 'Update User' : 'Create User' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" [class.show]="showDeleteConfirm()" *ngIf="showDeleteConfirm()" (click)="closeDeleteConfirm()">
+      <div class="modal-container modal-sm" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title text-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Confirm Delete
+          </h3>
+          <button type="button" class="modal-close" (click)="closeDeleteConfirm()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="confirm-text">Are you sure you want to delete this {{ deleteTarget()?.type }}?</p>
+          <div class="delete-item-info">
+            <strong>{{ deleteTarget()?.name }}</strong>
+          </div>
+          <p class="warning-text">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            This action cannot be undone.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeDeleteConfirm()">
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-danger" 
+            (click)="executeDelete()"
+            [disabled]="isDeletingUser() !== null || isDeletingIncident() !== null">
+            <span *ngIf="isDeletingUser() === null && isDeletingIncident() === null">Delete</span>
+            <span *ngIf="isDeletingUser() !== null || isDeletingIncident() !== null">
+              <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+              Deleting...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

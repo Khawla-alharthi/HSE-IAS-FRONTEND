@@ -1,0 +1,80 @@
+.hierarchy-diagram-container {
+    position: relative;
+    width: 100%;
+}
+
+.diagram-toolbar {
+    padding: 10px 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.diagram-canvas {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background: white;
+    overflow: hidden;
+    position: relative;
+}
+
+.diagram-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.btn:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #5a6268;
+    border-color: #545b62;
+}
+
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
+
+.me-1 { margin-right: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
